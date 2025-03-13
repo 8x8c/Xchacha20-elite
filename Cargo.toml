@@ -1,0 +1,14 @@
+[package]
+name = "xchacha"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+clap = "4"
+rpassword = "7"
+argon2 = "0.5"
+rand = "0.9"
+zeroize = "1.8"
+chacha20poly1305 = "0.10"
+

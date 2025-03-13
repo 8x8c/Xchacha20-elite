@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>mysecureapp-xchacha: README</title>
+    <style>
+        body {
+            margin: 20px auto;
+            max-width: 700px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        code, pre {
+            background: #f8f8f8;
+            padding: 0.2em 0.4em;
+            font-size: 0.95em;
+        }
+        h1, h2, h3 {
+            margin-top: 1.2em;
+            margin-bottom: 0.8em;
+        }
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 0.2em;
+        }
+        h2 {
+            font-size: 1.4em;
+        }
+        h3 {
+            font-size: 1.2em;
+        }
+        p, ul {
+            margin-bottom: 1em;
+        }
+        .code-block {
+            background: #f0f0f0;
+            border-left: 3px solid #ccc;
+            padding: 0.5em 1em;
+            margin: 1em 0;
+        }
+        .note {
+            padding: 0.6em;
+            background: #fffae0;
+            border-left: 4px solid #ffd85e;
+            margin: 1em 0;
+        }
+        .warning {
+            padding: 0.6em;
+            background: #ffe6e6;
+            border-left: 4px solid #ff9f9f;
+            margin: 1em 0;
+        }
+        .strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>mysecureapp-xchacha</h1>
+<p>
+    <strong>mysecureapp-xchacha</strong> is a minimal command-line tool 
+    written in Rust to provide <em>password-based file encryption</em> 
+    in-place using <strong>XChaCha20-Poly1305</strong> and 
+    <strong>Argon2id</strong>. It automatically detects whether a file 
+    is already encrypted (via a magic header) and either encrypts or 
+    decrypts it without requiring additional flags.
+</p>
+
+<hr>
+
+<h2>1. Overview</h2>
+<p>
+    This tool offers in-place encryption using:
+</p>
+<ul>
+    <li><strong>Argon2id</strong> for key derivation from a user-supplied password 
+        and a random salt. Argon2id is a memory-hard function, 
+        making brute-forcing more difficult on modern hardware.</li>
+    <li><strong>XChaCha20-Poly1305</strong>, a modern AEAD (Authenticated Encryption 
+        with Associated Data) cipher that provides confidentiality and data integrity. 
+        It uses a 24-byte nonce (XNonce), which reduces the risk of nonce collisions 
+        and allows safe random nonce generation without tracking usage counters.</li>
+    <li><strong>Atomic overwrite</strong> of files via a temporary file rename approach, 
+        reducing the risk of data corruption.</li>
+</ul>
+
+<h2>2. Requirements</h2>
+<ul>
+    <li>Rust (latest stable recommended), or a sufficiently recent version to support 
+        the required crates.</li>
+    <li>The following crates from <code>crates.io</code>:
+        <code>chacha20poly1305</code>, <code>argon2</code>, <code>rand</code>, 
+        <code>zeroize</code>, <code>anyhow</code>, <code>clap</code>, 
+        <code>rpassword</code>.
+    </li>
+</ul>
+
+<h2>3. Building</h2>
+<div class="code-block">
+<pre><code># Clone or copy the project
+git clone https://github.com/your-username/mysecureapp-xchacha.git
+cd mysecureapp-xchacha
+
+# Build in release mode
+cargo build --release
+
+# The compiled binary will be in target/release/mysecureapp-xchacha
+ls target/release/mysecureapp-xchacha
+</code></pre>
+</div>
+
+<p>
+    You can move or copy <code>mysecureapp-xchacha</code> to a directory 
+    in your <code>PATH</code> to run it more conveniently.
+</p>
+
+<h2>4. Usage</h2>
+<p>
+    <strong>mysecureapp-xchacha</strong> takes exactly 
+    <strong>one argument</strong> (the file path). Depending on whether 
+    that file is detected as already encrypted or not, the tool 
+    either encrypts or decrypts in-place.
+</p>
+
+<div class="code-block">
+<pre><code>Usage:
+  ./mysecureapp-xchacha &lt;file&gt;
+</code></pre>
+</div>
+
+<h3>4.1. Encrypting</h3>
+<p>
+    If the file is not recognized as encrypted (i.e. it does not start with 
+    the magic header <code>MYXCHAPP</code>), the app will encrypt it:
+</p>
+<div class="code-block">
+<pre><code>./mysecureapp-xchacha secrets.txt
+</code></pre>
+</div>
+<p>
+    You will be prompted to enter a password twice (to confirm). The file 
+    is then overwritten with a random salt, a 24-byte XChaCha nonce, and 
+    the XChaCha20-Poly1305 ciphertext. It also stores the magic header at 
+    the start, so it can recognize it next time.
+</p>
+
+<h3>4.2. Decrypting</h3>
+<p>
+    If the file <em>does</em> start with the magic header <code>MYXCHAPP</code> 
+    (meaning it was previously encrypted by this tool), 
+    <strong>mysecureapp-xchacha</strong> will decrypt in place.
+</p>
+<div class="code-block">
+<pre><code>./mysecureapp-xchacha secrets.txt
+</code></pre>
+</div>
+<p>
+    This time you only need to enter the password once. The file is then 
+    overwritten with the original plaintext if the password is correct 
+    and integrity checks pass.
+</p>
+
+<h2>5. Security Considerations</h2>
+<p>
+    Since this tool is entirely <em>password-based</em>, overall security 
+    depends on your password strength. Argon2id slows down brute-force attempts, 
+    but cannot compensate for <em>very weak</em> passwords.
+</p>
+
+<h3>5.1 Recommended Password Length</h3>
+<p>
+    Aim for <strong>12-16 characters minimum</strong>. For more robust security, 
+    consider <strong>20+</strong> characters. Good strategies include:
+</p>
+<ul>
+    <li>Random strings from a password manager (e.g. <code>%Qf8_ki!P&</code>).</li>
+    <li>A short passphrase of multiple random words (e.g. <code>rusty-wyvern-integer-egg</code>).</li>
+</ul>
+
+<p>
+    A short or dictionary-based password can still be brute-forced offline 
+    if an attacker obtains your encrypted file.
+</p>
+
+<div class="note">
+    <strong>Note:</strong> XChaCha20-Poly1305 is <em>excellent</em> at providing 
+    confidentiality and data integrity, but it <em>cannot</em> protect you if 
+    your password is easily guessed. Always pick a high-entropy password!
+</div>
+
+<h3>5.2 Memory-Hard Argon2id</h3>
+<p>
+    The code uses Argon2id with <strong>64 MB</strong> memory, <strong>3 iterations</strong>, 
+    and <strong>4 lanes</strong> for parallelism. This can be tweaked for your 
+    hardware. More memory and iterations mean stronger resistance to brute-forcing 
+    but require more time/RAM during encryption/decryption.
+</p>
+
+<h2>6. Internals</h2>
+<ul>
+    <li><strong>Magic Header:</strong> <code>MYXCHAPP</code> (8 bytes) prepended 
+        to encrypted files. If present, we assume it's already encrypted.</li>
+    <li><strong>Salt (16 bytes):</strong> Generated randomly each time a file 
+        is encrypted, stored just after the magic header.</li>
+    <li><strong>XChaCha Nonce (24 bytes):</strong> Placed after the salt. 
+        This ensures each encryption run is unique and helps avoid nonce reuse.</li>
+    <li><strong>Ciphertext:</strong> The result of <code>XChaCha20Poly1305</code> 
+        encryption, including the Poly1305 authentication tag for tamper detection.</li>
+    <li><strong>Zeroization:</strong> The tool uses <code>zeroize</code> to wipe 
+        the derived key, salt, nonce, and password from memory after each operation.</li>
+</ul>
+
+<h2>7. Example Workflow</h2>
+<ol>
+    <li><strong>Encryption:</strong>
+        <ul>
+            <li>Plaintext file: <code>notes.txt</code></li>
+            <li>Run <code>./mysecureapp-xchacha notes.txt</code></li>
+            <li>Enter a strong password twice; the file is overwritten with 
+                <code>[MYXCHAPP | salt(16) | nonce(24) | ciphertext]</code>.</li>
+        </ul>
+    </li>
+    <li><strong>Decryption:</strong>
+        <ul>
+            <li>The file starts with <code>MYXCHAPP</code>.</li>
+            <li>Run <code>./mysecureapp-xchacha notes.txt</code> again.</li>
+            <li>Enter the same password once; if correct, the file is overwritten 
+                with the recovered plaintext.</li>
+        </ul>
+    </li>
+</ol>
+
+<h2>8. Atomic Overwrite</h2>
+<p>
+    The app writes to a temporary file (e.g. <code>notes.txt.tmp</code>) and 
+    then renames it over the original, ensuring if anything fails, the original 
+    file is not corrupted mid-encryption/decryption.
+</p>
+
+<h2>9. Limitations</h2>
+<ul>
+    <li><strong>Large files:</strong> The entire file is read into memory. 
+        For gigabyte-scale data, consider a streaming or chunk-based approach.</li>
+    <li><strong>Single user/password:</strong> No multi-recipient capability 
+        is included. This is purely a <em>single password → single file</em> model.</li>
+    <li><strong>No hardware acceleration usage explicitly:</strong> 
+        <code>xchacha20poly1305</code> uses pure Rust or subtle CPU intrinsics 
+        if available. Performance is typically very good, but not as hardware-accelerated 
+        as some AES instructions on modern CPUs.</li>
+</ul>
+
+<h2>10. Security Disclaimer</h2>
+<div class="warning">
+    <strong>WARNING:</strong> This code is provided as a reference/example. 
+    It has <em>not</em> been formally audited. No crypto software is immune 
+    to vulnerabilities if used incorrectly or if the underlying system is compromised.
+</div>
+<p>
+    Always keep strong backups, use well-tested cryptographic libraries, and 
+    prefer a hardware-secured environment for especially sensitive data.
+</p>
+
+<h2>11. License & Contributions</h2>
+<p>
+    You can choose any open-source license (such as <strong>MIT</strong> or 
+    <strong>Apache-2.0</strong>) for this project. Contributions (pull requests, 
+    issues) are welcome on GitHub if published there. Adjust accordingly based 
+    on your specific license and collaboration model.
+</p>
+
+<hr>
+<p>
+    <em>© 2023. This README is for demonstration purposes and should be adapted 
+    to your real project’s needs.</em>
+</p>
+
+</body>
+</html>
+
