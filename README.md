@@ -37,6 +37,8 @@ That is the WORST case - just one char as the password. So imagine how good it w
 
 ![2](https://github.com/user-attachments/assets/e5b22d84-c635-4093-b007-ce5e877d95e4)
 
+Every time you encrypt, the cyphertext will be different, even if you use the same input file and password. 
+
 
 The MYENCAPP that you see at thestart of the cyphertext is the magic header. It is injected into they cyphertext so the app can automatically determine if it should be
 encrypted or decrypted. And with aes the nonce in injected too. SO make sure if your file is an executable, to ZIP it before encrypting. Encrypting/decrypting an executable could possibly change a byte at the start of it, which could make executable not run. So a standard practice is to zip executables for safer encryption. 
